@@ -1,0 +1,406 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <head>
+        <title>Demo service</title>
+        <meta charset="utf-8">
+        <style>
+
+            #map, #pano {
+                height: 300px;
+                width: 350px;
+            }
+        </style>
+    </head>
+</head>
+<body>
+<h1>Policy Query Form</h1>
+<table style='table-layout:fixed;width:100%' border='1'>
+    <tr>
+        <td style='width: 600px;'>
+            <table>
+                <tr><td>Please type company name and city:</td></tr>
+                <tr><td><input type="text" id="addr" onkeypress="showMap()"></td></tr>
+                <tr><td><div id="no"></div></td></tr>
+                <tr><td><div id="street"></div></td></tr>
+                <tr><td><div id="city"></div></td></tr>
+                <tr><td><div id="state"></div></td></tr>
+
+            </table>
+        </td>
+
+        <td>
+            <table style='table-layout:fixed;width:700px' >
+                <tr>
+                    <td style='width: 350px;' >
+                     <div id="map"></div>
+                    </td>
+                    <td style='width: 350px;'>
+                       <div id="pano"></div>
+                    </td>
+                </tr>
+                <tr>
+                    </td> <div id="storm">Severe Storm</div> </td>
+                </tr>
+                <tr>
+                    </td> <div id="hurricane">Hurricane</div> </td>
+                </tr>
+                <tr>
+                    </td> <div id="flood">Flood</div> </td>
+                </tr>
+                <tr>
+                    </td> <div id="fire">Fire</div> </td>
+                </tr>
+                <tr>
+                    </td> <div id="snow">Snow</div> </td>
+                </tr>
+                <tr>
+                    </td> <div id="tornado">Tornado</div> </td>
+                </tr>
+                <tr>
+                    </td> <div id="company"></div> </td>
+                </tr>
+                <tr>
+                    </td> <div id="finance"></div> </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+
+</table>
+
+    <script>
+
+        var lat = 0;
+        var lng = 0;
+        var address ={
+            no: null,
+            street:null,
+            city:null,
+            county:null,
+            state:null,
+            statecd: null
+        }
+
+        var company = null;
+        var symbol  = null;
+
+    document.getElementById('addr').onkeypress = function (e) {
+        if (!e) e = window.event;
+        var keyCode = e.keyCode || e.which;
+        if (keyCode == '13') {
+            if (document.getElementById('addr').value!== undefined &&
+                document.getElementById('addr').value !== null)
+            {
+                company =  document.getElementById('addr').value.substring (0, document.getElementById('addr').value.indexOf(',')).trim();
+            }
+            showMap();
+        }
+    }
+
+    function showMap() {
+
+        var geocoder = new google.maps.Geocoder();
+        var address = document.getElementById('addr').value;
+
+        if (address !== null && address !== '') {
+            geocoder.geocode({'address': address}, function (results, status) {
+                if (status === 'OK') {
+                    lat = results[0].geometry.location.lat();
+                    lng = results[0].geometry.location.lng();
+                    var fenway = {lat: lat, lng: lng};
+                    var map = new google.maps.Map(document.getElementById('map'), {
+                        center: fenway,
+                        zoom: 14
+                    });
+                    var panorama = new google.maps.StreetViewPanorama(
+                        document.getElementById('pano'), {
+                            position: fenway,
+                            pov: {
+                                heading: 34,
+                                pitch: 10
+                            }
+                        });
+                    map.setStreetView(panorama);
+                    populuateStCd();
+                } else {
+                    alert('Geocode was not successful for the following reason: ' + status);
+                }
+            });
+        }
+    }
+
+    function populuateStCd()
+    {
+            var xhttp;
+            if (window.XMLHttpRequest) {
+                // code for modern browsers
+                xhttp = new XMLHttpRequest();
+            } else {
+                // code for IE6, IE5
+                xhttp = new ActiveXObject("Microsoft.XMLHTTP");
+            }
+            xhttp.onreadystatechange = function() {
+                if (this.readyState == 4 && this.status == 200) {
+                    if (this.responseText !== null &&
+                        JSON.parse(this.responseText).results[0] !== undefined &&
+                        JSON.parse(this.responseText).results[0] !== null
+                    ) {
+                        if (JSON.parse(this.responseText).results[0].address_components !== undefined &&
+                            JSON.parse(this.responseText).results[0].address_components !== null) {
+                            var addInfo = JSON.parse(this.responseText).results[0].address_components;
+                            for (var i = 0; i < addInfo.length; i++) {
+                                var types = addInfo[i].types;
+                                for (var j = 0; j < types.length; j++) {
+                                    if (addInfo[i].types[j] === 'street_number') {
+                                        address.no = addInfo[i].long_name;
+                                        break;
+                                    }
+                                    else if (addInfo[i].types[j] === 'route') {
+                                        address.street = addInfo[i].long_name;
+                                        break;
+                                    }
+                                    else if (addInfo[i].types[j] === 'sublocality' ||
+                                        addInfo[i].types[j] === 'locality' ) {
+                                        address.city = addInfo[i].long_name;
+                                        break;
+                                    }
+                                    else if (addInfo[i].types[j] === 'administrative_area_level_2') {
+                                        address.county = addInfo[i].long_name;
+                                        break;
+                                    }
+                                    else if (addInfo[i].types[j] === 'administrative_area_level_1') {
+                                        address.state = addInfo[i].long_name;
+                                        address.statecd = addInfo[i].short_name;
+                                        break;
+                                    }
+                                }
+
+                            }
+                            callOther();
+                        }
+                    }
+                }
+            };
+        var reversegeourl =  "https://maps.googleapis.com/maps/api/geocode/json?latlng="+lat+","+lng+"&location_type=ROOFTOP&result_type=street_address&key=AIzaSyDjUfhk7qyfnmuhcuRne2u-QzPxDc8CxPA";
+
+        xhttp.open("GET",reversegeourl , false);
+        xhttp.send();
+    }
+        function callOther() {
+            document.getElementById("no").innerHTML = address.no;
+            document.getElementById("street").innerHTML = address.street;
+            document.getElementById("city").innerHTML = address.city;
+            document.getElementById("state").innerHTML = address.state;
+            if (address.county !== null) {
+                var county = address.county.substring(0, address.county.indexOf('County')).trim();
+                if (county !== null && county !== '') {
+
+                    getDisasterData(address.statecd, county)
+                }
+
+            }
+
+            if (company !== null) {
+                getCompanyInfo(company);
+                getSymbol(company);
+                getFinancialInfo(symbol);
+            }
+
+        }
+
+        function getDisasterData(statecd, county)
+        {
+            var femaurl ="https://www.fema.gov/api/open/v1/DisasterDeclarationsSummaries?$filter=declarationDate ge '2000-01-01T04:00:00.000z' and state eq '"+statecd+"'";
+            var xhttp;
+            if (window.XMLHttpRequest) {
+                // code for modern browsers
+                xhttp = new XMLHttpRequest();
+            } else {
+                // code for IE6, IE5
+                xhttp = new ActiveXObject("Microsoft.XMLHTTP");
+            }
+            xhttp.onreadystatechange = function () {
+                if (this.readyState == 4 && this.status == 200) {
+                    if (this.responseText !== null &&
+                        JSON.parse(this.responseText).DisasterDeclarationsSummaries !== undefined &&
+                        JSON.parse(this.responseText).DisasterDeclarationsSummaries !== null
+                    ) {
+                        var summaries = JSON.parse(this.responseText).DisasterDeclarationsSummaries;
+                        var disdata = [];
+                        for (var i = 0; i < summaries.length; i++) {
+                            if (summaries[i].declaredCountyArea.indexOf(county) > -1) {
+                                var dis ={
+                                    disasterType: summaries[i].disasterType,
+                                    disasterDate: summaries[i].incidentBeginDate,
+                                    incidentType: summaries[i].incidentType.toLowerCase()
+
+                                }
+                                disdata.push(dis);
+                            }
+                        }
+                        var stormcnt=0;
+                        var hurricancnt=0;
+                        var floodcnt=0;
+                        var firecnt=0;
+                        var snowcnt=0;
+                        var tornado=0;
+                        for (var j=0;j<disdata.length;j++)
+                        {
+                            var incidentType = disdata[j].incidentType
+                            if (incidentType.indexOf('storm')>-1)
+                            {
+                                stormcnt +=1;
+                            }
+                            else if (incidentType.indexOf('hurricane')>-1)
+                            {
+                                hurricancnt +=1;
+                            }
+                            else if (incidentType.indexOf('flood')>-1)
+                            {
+                                floodcnt +=1;
+                            }
+                            else if (incidentType.indexOf('tornado')>-1)
+                            {
+                                tornado +=1;
+                            }
+                            else if (incidentType.indexOf('fire')>-1)
+                            {
+                                firecnt +=1;
+                            }
+                            else if (incidentType.indexOf('snow')>-1)
+                            {
+                                snowcnt +=1;
+                            }
+                        }
+                        document.getElementById("storm").innerHTML = 'Severe Storm:'+stormcnt;
+                        document.getElementById("hurricane").innerHTML = 'Hurricane:'+hurricancnt;
+                        document.getElementById("flood").innerHTML = 'Flood:'+floodcnt;
+                        document.getElementById("fire").innerHTML = 'Fire:'+firecnt;
+                        document.getElementById("snow").innerHTML = 'Snow:'+snowcnt;
+                        document.getElementById("tornado").innerHTML = 'Tornado'+tornado;
+
+                        var t='t';
+                    }
+                }
+            };
+
+            xhttp.open("GET",femaurl , false);
+            xhttp.send();
+        }
+
+        function getCompanyInfo(company)
+        {
+            var googleurl ="https://www.googleapis.com/customsearch/v1?key=AIzaSyBVpQHQSKOpQOtUdXW3WPqfBf_I0oiyclY&cx=013036536707430787589:_pqjad5hr1a&q="+company+"&alt=json"
+            var xhttp;
+            if (window.XMLHttpRequest) {
+                // code for modern browsers
+                xhttp = new XMLHttpRequest();
+            } else {
+                // code for IE6, IE5
+                xhttp = new ActiveXObject("Microsoft.XMLHTTP");
+            }
+            xhttp.onreadystatechange = function () {
+                if (this.readyState == 4 && this.status == 200) {
+                    if (this.responseText !== null &&
+                        JSON.parse(this.responseText).items[0]!==null)
+                     {
+                        document.getElementById("company").innerHTML = '<p> Company Profile: </p>'+JSON.parse(this.responseText).items[0].htmlSnippet;
+
+                        var t='t';
+                    }
+                }
+            };
+            xhttp.open("GET",googleurl , false);
+            xhttp.send();
+        }
+
+        function getSymbol(company)
+        {
+            var googleurl ="https://www.googleapis.com/customsearch/v1?key=AIzaSyBVpQHQSKOpQOtUdXW3WPqfBf_I0oiyclY&cx=013036536707430787589:_pqjad5hr1a&q="+company+" stock symbol&alt=json"
+            var xhttp;
+            if (window.XMLHttpRequest) {
+                // code for modern browsers
+                xhttp = new XMLHttpRequest();
+            } else {
+                // code for IE6, IE5
+                xhttp = new ActiveXObject("Microsoft.XMLHTTP");
+            }
+            xhttp.onreadystatechange = function () {
+                if (this.readyState == 4 && this.status == 200) {
+                    if (this.responseText !== null &&
+                        JSON.parse(this.responseText).items[0]!==null)
+                    {
+                        var title = JSON.parse(this.responseText).items[0].title;
+
+                        if (title.indexOf('Stock')>-1)
+                        {
+                            symbol = title.substring(0,title.indexOf('Stock')).trim();
+                        }
+                        var t='t';
+                    }
+                }
+            };
+            xhttp.open("GET",googleurl , false);
+            xhttp.send();
+        }
+
+
+        function getFinancialInfo(symbol)
+        {
+
+            var yahoourl ="http://query.yahooapis.com/v1/public/yql?q=select%20*%20from%20yahoo.finance.quotes%20where%20symbol%20in%20(%22"+symbol+"%22)&env=store://datatables.org/alltableswithkeys";
+
+            var xhttp;
+            if (window.XMLHttpRequest) {
+                // code for modern browsers
+                xhttp = new XMLHttpRequest();
+            } else {
+                // code for IE6, IE5
+                xhttp = new ActiveXObject("Microsoft.XMLHTTP");
+            }
+            xhttp.onreadystatechange = function () {
+                if (this.readyState == 4 && this.status == 200) {
+                    var parser = new DOMParser()
+                    if (this.responseText !== null)
+                    {
+                        var xmlDoc =parser.parseFromString(this.responseText, "text/xml");
+
+                        var finance = '';
+
+                        var children = xmlDoc.getElementsByTagName('quote')[0].childNodes
+
+                        for (var i=0;i<children.length;i++) {
+                            if (children[i].nodeName==='DaysRange') {
+                                finance += "<p> Price:" + children[i].childNodes[0].textContent+"</p>";
+                            }
+                            else if (children[i].nodeName==='MarketCapitalization') {
+                                finance += "<p> Market Cap:" + children[i].childNodes[0].textContent+"</p>";
+                            }
+                            else if (children[i].nodeName==='EBITDA') {
+                                finance += "<p> Profit:" + children[i].childNodes[0].textContent+"</p>";
+                            }
+                            else if (children[i].nodeName==='PEGRatio') {
+                                finance += "<p> PEG:" + children[i].childNodes[0].textContent+"</p>";
+                            }
+                            else if (children[i].nodeName==='EarningsShare') {
+                                finance += "<p> Earning Per Share:" + children[i].childNodes[0].textContent+"</p>";
+                            }
+                        }
+
+                        document.getElementById("finance").innerHTML = finance;
+
+                        var t='t';
+                    }
+                }
+            };
+            xhttp.open("GET",yahoourl , false);
+            xhttp.send();
+        }
+
+    </script>
+<script async defer
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDjUfhk7qyfnmuhcuRne2u-QzPxDc8CxPA&callback=showMap">
+</script>
+</body>
+</html>
