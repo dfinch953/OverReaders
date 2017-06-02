@@ -21,47 +21,61 @@
             <table>
                 <tr><td>Please type company name and city:</td></tr>
                 <tr><td><input type="text" id="addr" onkeypress="showMap()"></td></tr>
-                <tr><td><div id="no"></div></td></tr>
-                <tr><td><div id="street"></div></td></tr>
-                <tr><td><div id="city"></div></td></tr>
-                <tr><td><div id="state"></div></td></tr>
+                <tr><td>Please chose production line:</td></tr>
+                <tr><td>
+                    <select onchange="addMake(this.value)">
+                        <option value="PR">Property</option>
+                        <option value="AU">Auto</option>
+                        <option value="CMP">Work Comp</option>
+                        <option value="UM">Umbrella</option>
+                    </select>
+                </td></tr>
+                <tr>
+                    <td>
+                        <div id="make">
 
+                        </div>
+                </td>
+                    <td>
+                        <div id="model">
+
+                        </div>
+                    </td>
+                    <td>
+                        <div id="year">
+
+                        </div>
+                    </td>
+                </tr>
             </table>
         </td>
 
         <td>
             <table style='table-layout:fixed;width:700px' >
                 <tr>
-                    <td style='width: 350px;' >
-                     <div id="map"></div>
+                    <td style='width: 350px;'>
+                        <div id="map"></div>
                     </td>
                     <td style='width: 350px;'>
-                       <div id="pano"></div>
+                        <div id="pano"></div>
                     </td>
                 </tr>
                 <tr>
-                    </td> <div id="storm">Severe Storm</div> </td>
+                    </td>
+                    <div id="rating"></div>
+                    </td>
+                </tr>
+                <tr> <p><b>Company Address:</b></p>
+                    <div id="no"></div>
+                    <div id="street"></div>
+                    <div id="city"></div>
+                    <div id="state"></div>
+                    <div id="company"></div>
                 </tr>
                 <tr>
-                    </td> <div id="hurricane">Hurricane</div> </td>
-                </tr>
-                <tr>
-                    </td> <div id="flood">Flood</div> </td>
-                </tr>
-                <tr>
-                    </td> <div id="fire">Fire</div> </td>
-                </tr>
-                <tr>
-                    </td> <div id="snow">Snow</div> </td>
-                </tr>
-                <tr>
-                    </td> <div id="tornado">Tornado</div> </td>
-                </tr>
-                <tr>
-                    </td> <div id="company"></div> </td>
-                </tr>
-                <tr>
-                    </td> <div id="finance"></div> </td>
+                    </td>
+                    <div id="finance"></div>
+                    </td>
                 </tr>
             </table>
         </td>
@@ -70,6 +84,118 @@
 </table>
 
     <script>
+
+        function addMake(value)
+        {
+            if (value ==='AU') {
+                var makesel = document.getElementById('make')
+                    makesel.innerHTML = 'Please chose make: <select onchange="addModel(this.value)">'+
+                        "<option value=''></option>"+
+                    "<option value='honda'>Honda</option>"+
+                    "<option value='toyota'>Toyota</option>"+
+                    "</select>";
+            }
+            else
+            {
+                var maked = document.getElementById('make');
+                if (maked !== undefined) {
+                    maked.innerHTML = "";
+                }
+                var modeld = document.getElementById('model');
+                if (modeld !== undefined) {
+                    modeld.innerHTML = "";
+                }
+                var yeard = document.getElementById('year');
+                if (yeard !== undefined) {
+                    yeard.innerHTML = "";
+                }
+            }
+
+        }
+
+        var makeValue =null;
+        var modelValue =null;
+        var yearValue = null;
+
+        function addModel(makeV)
+        {
+            makeValue =makeV;
+            modelValue =null;
+            yearValue = null;
+            if (makeV ==='honda') {
+                var modelsel = document.getElementById('model')
+                modelsel.innerHTML = 'Please chose model: <select onchange="addYear(this.value)">'+
+                    "<option value=''></option>"+
+                    "<option value='accord'>Accord</option>"+
+                    "<option value='civic'>Civic</option>"+
+                    "</select>";
+            }
+            else if (makeV ==='toyota') {
+                var modelsel = document.getElementById('model')
+                modelsel.innerHTML = 'Please chose model: <select onchange="addYear(this.value)">'+
+                    "<option value=''></option>"+
+                    "<option value='camry'>Camry</option>"+
+                    "<option value='corolla'>Corolla</option>"+
+                    "</select>";
+            }
+        }
+
+
+        function addYear(modelV)
+        {
+            modelValue =modelV;
+            yearValue = null;
+            if (modelV!==null && modelV!=='') {
+                var yearsel = document.getElementById('year')
+                yearsel.innerHTML = 'Please chose year: <select onchange="getCarInfor(this.value)">' +
+                    "<option value=''></option>" +
+                    "<option value='2007'>2007</option>" +
+                    "<option value='2008'>2008</option>" +
+                    "</select>";
+            }
+        }
+
+        function getCarInfor(yearV)
+        {
+            yearValue= yearV;
+            if (yearV!==null && yearV!=='') {
+                var emurl ="https://api.edmunds.com/api/vehicle/v2/"+makeValue+"/"+modelValue+"/"+yearValue+"/safety?fmt=json&api_key=pwzaux5wa9awrvh35cmufubu";
+                var xhttp;
+                if (window.XMLHttpRequest) {
+                    // code for modern browsers
+                    xhttp = new XMLHttpRequest();
+                } else {
+                    // code for IE6, IE5
+                    xhttp = new ActiveXObject("Microsoft.XMLHTTP");
+                }
+                xhttp.onreadystatechange = function () {
+                    if (this.readyState == 4 && this.status == 200) {
+                        if (this.responseText !== null &&
+                            JSON.parse(this.responseText).iihs[0]!==null)
+                        {
+                            var iihs = JSON.parse(this.responseText).iihs;
+                            var html ='';
+                            for (var i=0; i<iihs.length; i++)
+                            {
+                                html += "<p>"+iihs[i].category+":"+iihs[i].value+"</p>";
+                            }
+
+                            var nhtsa = JSON.parse(this.responseText).nhtsa.categories[0].options
+
+                            html += "<p> NHTSA Rating:</p>";
+                            for (var j=0; j<nhtsa.length; j++)
+                            {
+                                html += "<p>"+nhtsa[j].name+":"+nhtsa[j].value+"</p>";
+                            }
+                            document.getElementById("rating").innerHTML = 'Safty Information:'+html;
+                            var t='t';
+                        }
+                    }
+                };
+                xhttp.open("GET",emurl , false);
+                xhttp.send();
+            }
+        }
 
         var lat = 0;
         var lng = 0;
@@ -89,6 +215,16 @@
         if (!e) e = window.event;
         var keyCode = e.keyCode || e.which;
         if (keyCode == '13') {
+            lat =0;
+            lng =0;
+            address.no =null;
+            address.street = null;
+            address.city =null;
+            address.county = null;
+            address.state = null;
+            address.statecd = null;
+            company=null;
+            symbol=null;
             if (document.getElementById('addr').value!== undefined &&
                 document.getElementById('addr').value !== null)
             {
@@ -204,7 +340,10 @@
             if (company !== null) {
                 getCompanyInfo(company);
                 getSymbol(company);
-                getFinancialInfo(symbol);
+                if (symbol!==null)
+                {
+                    getFinancialInfo(symbol);
+                }
             }
 
         }
@@ -273,14 +412,17 @@
                                 snowcnt +=1;
                             }
                         }
-                        document.getElementById("storm").innerHTML = 'Severe Storm:'+stormcnt;
-                        document.getElementById("hurricane").innerHTML = 'Hurricane:'+hurricancnt;
-                        document.getElementById("flood").innerHTML = 'Flood:'+floodcnt;
-                        document.getElementById("fire").innerHTML = 'Fire:'+firecnt;
-                        document.getElementById("snow").innerHTML = 'Snow:'+snowcnt;
-                        document.getElementById("tornado").innerHTML = 'Tornado'+tornado;
+                        var dishtml =  "<p><b>Disaster of past 20 years in the region</b></p>";
 
-                        var t='t';
+                        dishtml  += '<p> Severe Storm: '+stormcnt+'</p>';
+                        dishtml  += '<p>Hurricane: '+hurricancnt+'</p>';
+                        dishtml  += '<p>Flood: '+floodcnt+'</p>';
+                        dishtml  += '<p>Fire: '+firecnt+'</p>';
+                        dishtml  += '<p>Snow Storm: '+snowcnt+'</p>';
+                        dishtml  += '<p>Tornado: '+tornado+'</p>';
+                        document.getElementById("rating").innerHTML = dishtml;
+
+
                     }
                 }
             };
@@ -305,7 +447,7 @@
                     if (this.responseText !== null &&
                         JSON.parse(this.responseText).items[0]!==null)
                      {
-                        document.getElementById("company").innerHTML = '<p> Company Profile: </p>'+JSON.parse(this.responseText).items[0].htmlSnippet;
+                        document.getElementById("company").innerHTML = '<p> <b>Company Profile:</b> </p>'+JSON.parse(this.responseText).items[0].htmlSnippet;
 
                         var t='t';
                     }
@@ -366,25 +508,25 @@
                     {
                         var xmlDoc =parser.parseFromString(this.responseText, "text/xml");
 
-                        var finance = '';
+                        var finance = "<p><b>Financial Information</b></p><div>Symbol:"+symbol+"</div>";
 
                         var children = xmlDoc.getElementsByTagName('quote')[0].childNodes
 
                         for (var i=0;i<children.length;i++) {
                             if (children[i].nodeName==='DaysRange') {
-                                finance += "<p> Price:" + children[i].childNodes[0].textContent+"</p>";
+                                finance += "<div> Price:" + children[i].childNodes[0].textContent+"</div>";
                             }
                             else if (children[i].nodeName==='MarketCapitalization') {
-                                finance += "<p> Market Cap:" + children[i].childNodes[0].textContent+"</p>";
+                                finance += "<div> Market Cap:" + children[i].childNodes[0].textContent+"</div>";
                             }
                             else if (children[i].nodeName==='EBITDA') {
-                                finance += "<p> Profit:" + children[i].childNodes[0].textContent+"</p>";
+                                finance += "<div> Profit:" + children[i].childNodes[0].textContent+"</div>";
                             }
                             else if (children[i].nodeName==='PEGRatio') {
-                                finance += "<p> PEG:" + children[i].childNodes[0].textContent+"</p>";
+                                finance += "<div> PEG:" + children[i].childNodes[0].textContent+"</div>";
                             }
                             else if (children[i].nodeName==='EarningsShare') {
-                                finance += "<p> Earning Per Share:" + children[i].childNodes[0].textContent+"</p>";
+                                finance += "<div> Earning Per Share:" + children[i].childNodes[0].textContent+"</div>";
                             }
                         }
 
